@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#b07d1f">
+<title>꿀 주문 관리</title>
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="topbar">
+  <h1>🍯 주문 관리</h1>
+  <button id="logoutBtn" class="namechip" type="button" hidden>로그아웃</button>
+</header>
+
+<div id="loginView" class="loginbox" hidden>
+  <h2>관리자 로그인</h2>
+  <input id="loginEmail" type="email" placeholder="이메일" autocomplete="username">
+  <input id="loginPw" type="password" placeholder="비밀번호" autocomplete="current-password">
+  <button id="loginBtn" type="button">로그인</button>
+  <p id="loginErr" class="loginerr" hidden></p>
+</div>
+
+<main id="opView" class="container" hidden>
+  <div class="toolrow">
+    <button id="verbalBtn" class="smallbtn" type="button">＋ 구두 주문 입력</button>
+    <button id="notifBtn" class="smallbtn" type="button" hidden>🔔 알림 켜기</button>
+  </div>
+
+  <section class="opsec">
+    <h2>대기 중 <span id="pendingCount" class="count"></span></h2>
+    <div id="pendingList"></div>
+    <p id="pendingEmpty" class="meta" style="color:var(--muted)">대기 중인 주문이 없습니다.</p>
+  </section>
+
+  <section class="opsec" id="cancelledSec" hidden>
+    <h2>취소된 주문</h2>
+    <div id="cancelledList"></div>
+  </section>
+
+  <section class="opsec">
+    <details>
+      <summary>오늘 완료 <span id="doneCount" class="count"></span></summary>
+      <div id="doneList"></div>
+    </details>
+  </section>
+
+  <section class="opsec">
+    <details>
+      <summary>품목 관리 (품절 설정)</summary>
+      <div id="productList"></div>
+    </details>
+  </section>
+</main>
+
+<div id="verbalModal" class="modal" hidden>
+  <div class="modalbox">
+    <h2>구두 주문 입력</h2>
+    <input id="vName" type="text" placeholder="이름 (선택)">
+    <select id="vProduct"></select>
+    <label class="toggle" style="margin:8px 0"><input type="checkbox" id="vUrgent"><span>급함</span></label>
+    <div class="modalbtns">
+      <button id="vSave" class="primary" type="button">입력</button>
+      <button id="vCancel" type="button">닫기</button>
+    </div>
+  </div>
+</div>
+
+<div id="offlineBanner" class="banner" hidden>서버에 연결할 수 없습니다.</div>
+
+<script src="js/vendor/supabase.js"></script>
+<script src="js/config.js"></script>
+<script src="js/operator.js"></script>
+</body>
+</html>

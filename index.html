@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#b07d1f">
+<title>꿀 주문</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="topbar">
+  <h1>🍯 꿀 주문</h1>
+  <button id="nameBtn" class="namechip" type="button"></button>
+</header>
+
+<main id="orderView" class="container" hidden>
+  <section>
+    <h2 class="label">꿀 종류</h2>
+    <div id="typeGrid" class="grid grid-2"></div>
+  </section>
+
+  <section>
+    <h2 class="label">용량</h2>
+    <div id="sizeGrid" class="grid grid-4"></div>
+  </section>
+
+  <section class="urgentRow">
+    <label class="toggle">
+      <input type="checkbox" id="urgentChk">
+      <span>급한 주문입니다</span>
+    </label>
+  </section>
+
+  <button id="orderBtn" class="orderbtn" type="button">주문하기</button>
+  <p id="orderMsg" class="ordermsg" hidden></p>
+
+  <section id="myOrdersSec" hidden>
+    <h2 class="label">오늘 나의 주문</h2>
+    <ul id="myOrders" class="orderlist"></ul>
+  </section>
+</main>
+
+<div id="nameModal" class="modal" hidden>
+  <div class="modalbox">
+    <h2>성함을 입력해 주세요</h2>
+    <p class="sub">입력하지 않으셔도 주문하실 수 있습니다.</p>
+    <input id="nameInput" type="text" autocomplete="name" placeholder="이름">
+    <div class="modalbtns">
+      <button id="nameSave" class="primary" type="button">저장</button>
+      <button id="nameSkip" type="button">건너뛰기</button>
+    </div>
+  </div>
+</div>
+
+<div id="offlineBanner" class="banner" hidden>연결할 수 없습니다. 직접 말씀해 주세요.</div>
+
+<script src="js/vendor/supabase.js"></script>
+<script src="js/config.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
