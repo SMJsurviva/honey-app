@@ -7,7 +7,7 @@
   <key>ProgramArguments</key>
   <array>
     <string>/bin/bash</string>
-    <string>/Users/matthewjackson/Documents/KLP/honey/honey_keepalive.sh</string>
+    <string>/Users/matthewjackson/.klp/honey_keepalive.sh</string>
   </array>
   <key>StartInterval</key>
   <integer>432000</integer><!-- every 5 days; free tier pauses after 7 days idle -->

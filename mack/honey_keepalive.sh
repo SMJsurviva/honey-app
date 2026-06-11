@@ -1,7 +1,7 @@
 #!/bin/bash
 # Honey App keepalive — real DB query every 5 days so the Supabase free-tier
 # project is never paused for 7-day inactivity. Telegram alert on failure.
-# Deployed on Mack as com.klp.honey-keepalive.
+# Deployed on Mack at ~/.klp/honey_keepalive.sh (NOT ~/Documents — TCC blocks launchd bash there).
 
 SUPABASE_URL="__SUPABASE_URL__"
 SUPABASE_ANON_KEY="__SUPABASE_ANON_KEY__"
