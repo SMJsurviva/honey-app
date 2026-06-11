@@ -18,6 +18,12 @@ const sb = createClient(
 );
 
 Deno.serve(async (req) => {
+  // Deployed with verify_jwt=false so the pg_net trigger can call it;
+  // a shared secret keeps strangers from firing pushes.
+  const secret = Deno.env.get("HONEY_WEBHOOK_SECRET");
+  if (secret && req.headers.get("x-honey-secret") !== secret) {
+    return new Response("forbidden", { status: 403 });
+  }
   const payload = await req.json();
   const order = payload.record;
   if (!order || payload.type !== "INSERT") {
