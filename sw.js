@@ -1,7 +1,7 @@
 /* Service worker: network-first (never serve a stale app when online),
    cache fallback only when offline. Also handles Web Push for the operator. */
 
-const CACHE = "honey-v1";
+const CACHE = "honey-v2";
 const SHELL = [
   "./",
   "./index.html",
@@ -30,8 +30,10 @@ self.addEventListener("activate", (e) => {
 
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET" || !e.request.url.startsWith(self.location.origin)) return;
+  // cache:"no-cache" forces ETag revalidation — GitHub Pages' max-age=600
+  // otherwise lets Chrome serve a stale app for up to 10 minutes after deploy
   e.respondWith(
-    fetch(e.request)
+    fetch(e.request, { cache: "no-cache" })
       .then((res) => {
         const copy = res.clone();
         caches.open(CACHE).then((c) => c.put(e.request, copy));
