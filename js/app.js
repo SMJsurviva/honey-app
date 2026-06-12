@@ -8,6 +8,9 @@ const els = {
   typeGrid: document.getElementById("typeGrid"),
   sizeGrid: document.getElementById("sizeGrid"),
   urgent: document.getElementById("urgentChk"),
+  qtyInput: document.getElementById("qtyInput"),
+  qtyMinus: document.getElementById("qtyMinus"),
+  qtyPlus: document.getElementById("qtyPlus"),
   orderBtn: document.getElementById("orderBtn"),
   orderMsg: document.getElementById("orderMsg"),
   myOrdersSec: document.getElementById("myOrdersSec"),
@@ -105,6 +108,16 @@ function updateOrderBtn() {
   els.orderBtn.disabled = !(p && p.active) || !!undoTimer;
 }
 
+// ---- quantity ----
+function qty() {
+  const n = parseInt(els.qtyInput.value, 10);
+  return Number.isFinite(n) ? Math.min(9999, Math.max(1, n)) : 1;
+}
+function setQty(n) { els.qtyInput.value = Math.min(9999, Math.max(1, n)); }
+els.qtyMinus.addEventListener("click", () => setQty(qty() - 1));
+els.qtyPlus.addEventListener("click", () => setQty(qty() + 1));
+els.qtyInput.addEventListener("focus", () => els.qtyInput.select());
+
 // ---- ordering ----
 function showMsg(text, cls) {
   els.orderMsg.textContent = text;
@@ -127,6 +140,7 @@ async function placeOrder() {
       device_id: deviceId(),
       requester_name: getName() || null,
       product_id: p.id,
+      quantity: qty(),
       urgent: els.urgent.checked,
     })
     .select()
@@ -141,8 +155,9 @@ async function placeOrder() {
     return;
   }
 
-  showMsg("✓ 주문이 접수되었습니다: " + p.display_label, "ok");
+  showMsg(`✓ 주문이 접수되었습니다: ${p.display_label} × ${qty()}개`, "ok");
   els.urgent.checked = false;
+  setQty(1);
   startUndoWindow(data.id);
   loadMyOrders();
 }
@@ -184,7 +199,7 @@ async function loadMyOrders() {
   today.setHours(0, 0, 0, 0);
   const { data, error } = await sb
     .from("orders")
-    .select("id, created_at, urgent, status, products(display_label)")
+    .select("id, created_at, urgent, status, quantity, products(display_label)")
     .eq("device_id", deviceId())
     .gte("created_at", today.toISOString())
     .order("created_at", { ascending: false });
@@ -198,7 +213,7 @@ async function loadMyOrders() {
     const time = new Date(o.created_at).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
     const left = document.createElement("div");
     left.innerHTML =
-      `<div class="what">${o.products.display_label}${o.urgent ? ' <span class="badge-urgent">급함</span>' : ""}</div>` +
+      `<div class="what">${o.products.display_label}${o.quantity > 1 ? " × " + o.quantity + "개" : ""}${o.urgent ? ' <span class="badge-urgent">급함</span>' : ""}</div>` +
       `<div class="meta">${time}</div>`;
     li.appendChild(left);
 

@@ -14,6 +14,7 @@ const els = {
   productList: $("productList"),
   verbalBtn: $("verbalBtn"), verbalModal: $("verbalModal"),
   vName: $("vName"), vProduct: $("vProduct"), vUrgent: $("vUrgent"), vSave: $("vSave"), vCancel: $("vCancel"),
+  vQty: $("vQty"), vQtyMinus: $("vQtyMinus"), vQtyPlus: $("vQtyPlus"),
   notifBtn: $("notifBtn"),
   offline: $("offlineBanner"),
 };
@@ -78,7 +79,7 @@ function orderCard(o, buttons) {
   const left = document.createElement("div");
   left.innerHTML =
     `<div class="who">${o.requester_name || "이름 없음"}${o.verbal ? " (구두)" : ""}</div>` +
-    `<div class="what">${o.products.display_label}${o.urgent ? ' <span class="badge-urgent">급함</span>' : ""}</div>` +
+    `<div class="what">${o.products.display_label}${o.quantity > 1 ? " × " + o.quantity + "개" : ""}${o.urgent ? ' <span class="badge-urgent">급함</span>' : ""}</div>` +
     `<div class="meta">${fmtTime(o.created_at)}</div>`;
   card.appendChild(left);
   const right = document.createElement("div");
@@ -179,6 +180,13 @@ function renderVerbalOptions() {
   }
 }
 
+function vQtyVal() {
+  const n = parseInt(els.vQty.value, 10);
+  return Number.isFinite(n) ? Math.min(9999, Math.max(1, n)) : 1;
+}
+els.vQtyMinus.addEventListener("click", () => { els.vQty.value = Math.max(1, vQtyVal() - 1); });
+els.vQtyPlus.addEventListener("click", () => { els.vQty.value = Math.min(9999, vQtyVal() + 1); });
+
 els.verbalBtn.addEventListener("click", () => { els.verbalModal.hidden = false; });
 els.vCancel.addEventListener("click", () => { els.verbalModal.hidden = true; });
 els.vSave.addEventListener("click", async () => {
@@ -187,6 +195,7 @@ els.vSave.addEventListener("click", async () => {
     device_id: "00000000-0000-0000-0000-000000000000", // operator-entered, no monk device
     requester_name: els.vName.value.trim() || null,
     product_id: Number(els.vProduct.value),
+    quantity: vQtyVal(),
     urgent: els.vUrgent.checked,
     verbal: true,
   });
@@ -194,6 +203,7 @@ els.vSave.addEventListener("click", async () => {
   if (!error) {
     els.verbalModal.hidden = true;
     els.vName.value = "";
+    els.vQty.value = 1;
     els.vUrgent.checked = false;
     refresh();
   }

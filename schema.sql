@@ -16,6 +16,7 @@ create table if not exists orders (
   device_id uuid not null,
   requester_name text,
   product_id int not null references products(id),
+  quantity int not null default 1 check (quantity >= 1 and quantity <= 9999),
   urgent boolean not null default false,
   status text not null default 'pending' check (status in ('pending','done','cancelled')),
   dismissed boolean not null default false,  -- operator cleared a cancelled order from the queue

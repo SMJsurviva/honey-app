@@ -39,7 +39,8 @@ Deno.serve(async (req) => {
     .single();
 
   const title = order.urgent ? "🔴 새 주문 (급함)" : "🍯 새 주문";
-  const body = `${order.requester_name ?? "이름 없음"} — ${product?.display_label ?? "?"}`;
+  const qty = order.quantity > 1 ? ` × ${order.quantity}개` : "";
+  const body = `${order.requester_name ?? "이름 없음"} — ${product?.display_label ?? "?"}${qty}`;
 
   const { data: subs } = await sb.from("operator_subscriptions").select("id, subscription");
   let sent = 0;

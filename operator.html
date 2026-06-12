@@ -60,6 +60,11 @@
     <h2>구두 주문 입력</h2>
     <input id="vName" type="text" placeholder="이름 (선택)">
     <select id="vProduct"></select>
+    <div class="qtyRow" style="margin-bottom:8px">
+      <button id="vQtyMinus" class="qtybtn" type="button">−</button>
+      <input id="vQty" type="number" inputmode="numeric" min="1" max="9999" value="1">
+      <button id="vQtyPlus" class="qtybtn" type="button">＋</button>
+    </div>
     <label class="toggle" style="margin:8px 0"><input type="checkbox" id="vUrgent"><span>급함</span></label>
     <div class="modalbtns">
       <button id="vSave" class="primary" type="button">입력</button>
