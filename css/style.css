@@ -12,6 +12,10 @@
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
+/* author display rules (e.g. .modal { display:flex }) would otherwise
+   defeat the HTML hidden attribute */
+[hidden] { display: none !important; }
+
 body {
   margin: 0;
   font-family: "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
