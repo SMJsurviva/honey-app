@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#b07d1f">
+<title>꿀 주문 분석</title>
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="css/style.css?v=3">
+</head>
+<body>
+<header class="topbar">
+  <a href="operator.html" class="namechip" style="text-decoration:none">← 대기열</a>
+  <h1>📊 분석</h1>
+</header>
+
+<main id="analyticsView" class="container" hidden>
+  <div class="tabrow">
+    <button class="tabbtn sel" type="button" data-tab="today">오늘</button>
+    <button class="tabbtn" type="button" data-tab="week">이번 주</button>
+    <button class="tabbtn" type="button" data-tab="range">기간 선택</button>
+  </div>
+  <div id="tabContent"></div>
+</main>
+
+<div id="loginView" class="loginbox" hidden>
+  <h2>관리자 로그인</h2>
+  <input id="loginEmail" type="email" placeholder="이메일" autocomplete="username">
+  <input id="loginPw" type="password" placeholder="비밀번호" autocomplete="current-password">
+  <button id="loginBtn" type="button">로그인</button>
+  <p id="loginErr" class="loginerr" hidden></p>
+</div>
+
+<script src="js/vendor/supabase.js?v=3"></script>
+<script src="js/config.js?v=3"></script>
+<script src="js/analytics.js?v=3"></script>
+</body>
+</html>

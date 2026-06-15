@@ -9,9 +9,10 @@ const els = {
   loginEmail: $("loginEmail"), loginPw: $("loginPw"), loginBtn: $("loginBtn"), loginErr: $("loginErr"),
   logoutBtn: $("logoutBtn"),
   pendingList: $("pendingList"), pendingEmpty: $("pendingEmpty"), pendingCount: $("pendingCount"),
+  inProcessSec: $("inProcessSec"), inProcessList: $("inProcessList"), inProcessCount: $("inProcessCount"),
   cancelledSec: $("cancelledSec"), cancelledList: $("cancelledList"),
   doneList: $("doneList"), doneCount: $("doneCount"),
-  productList: $("productList"),
+  stockList: $("stockList"),
   verbalBtn: $("verbalBtn"), verbalModal: $("verbalModal"),
   vName: $("vName"), vProduct: $("vProduct"), vUrgent: $("vUrgent"), vSave: $("vSave"), vCancel: $("vCancel"),
   vQty: $("vQty"), vQtyMinus: $("vQtyMinus"), vQtyPlus: $("vQtyPlus"),
@@ -56,6 +57,8 @@ async function enter() {
   els.logoutBtn.hidden = false;
   await loadProducts();
   await refresh();
+  setupStockListener();
+  await renderStock();
   subscribeRealtime();
   setInterval(refresh, 30000); // polling fallback — Realtime can degrade independently
   requestWakeLock();
@@ -65,7 +68,6 @@ async function enter() {
 async function loadProducts() {
   const { data } = await sb.from("products").select("*").order("sort");
   if (data) products = data;
-  renderProducts();
   renderVerbalOptions();
 }
 
@@ -75,14 +77,23 @@ function fmtTime(ts) {
 
 function orderCard(o, buttons) {
   const card = document.createElement("div");
-  card.className = "card" + (o.urgent && o.status === "pending" ? " urgent" : "") + (o.status === "cancelled" ? " cancelled" : "");
+  card.className = "card"
+    + (o.urgent && o.status === "pending" ? " urgent" : "")
+    + (o.status === "in_process" ? " in-process" : "")
+    + (o.status === "cancelled" ? " cancelled" : "");
+
   const left = document.createElement("div");
+  const qtyStr = o.quantity >= 10
+    ? `<span class="badge-qty">× ${o.quantity}개</span>`
+    : (o.quantity > 1 ? ` × ${o.quantity}개` : "");
   left.innerHTML =
     `<div class="who">${o.requester_name || "이름 없음"}${o.verbal ? " (구두)" : ""}</div>` +
-    `<div class="what">${o.products.display_label}${o.quantity > 1 ? " × " + o.quantity + "개" : ""}${o.urgent ? ' <span class="badge-urgent">급함</span>' : ""}</div>` +
+    `<div class="what">${o.products.display_label}${qtyStr}${o.urgent ? ' <span class="badge-urgent">급함</span>' : ""}</div>` +
     `<div class="meta">${fmtTime(o.created_at)}</div>`;
   card.appendChild(left);
+
   const right = document.createElement("div");
+  right.style.cssText = "display:flex;gap:8px;flex-shrink:0";
   for (const b of buttons) right.appendChild(b);
   card.appendChild(right);
   return card;
@@ -111,14 +122,21 @@ async function refresh() {
 
   const pending = data.filter((o) => o.status === "pending")
     .sort((a, b) => (b.urgent - a.urgent) || (new Date(a.created_at) - new Date(b.created_at)));
+  const inProcess = data.filter((o) => o.status === "in_process")
+    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
   // Cancelled orders stay visible until dismissed — this is the Bug #5 fix:
   // a cancellation must be a loud event in the queue, never a silent disappearance.
   const cancelled = data.filter((o) => o.status === "cancelled" && !o.dismissed);
   const doneToday = data.filter((o) => o.status === "done" && new Date(o.created_at) >= today);
 
+  // ---- pending ----
   els.pendingList.innerHTML = "";
   for (const o of pending) {
     els.pendingList.appendChild(orderCard(o, [
+      btn("준비 중", "process", async () => {
+        await sb.from("orders").update({ status: "in_process" }).eq("id", o.id);
+        refresh();
+      }),
       btn("✓ 완료", "good", async () => {
         await sb.from("orders").update({ status: "done" }).eq("id", o.id);
         refresh();
@@ -128,6 +146,24 @@ async function refresh() {
   els.pendingCount.textContent = pending.length ? `(${pending.length})` : "";
   els.pendingEmpty.hidden = pending.length > 0;
 
+  // ---- in process ----
+  els.inProcessList.innerHTML = "";
+  for (const o of inProcess) {
+    els.inProcessList.appendChild(orderCard(o, [
+      btn("되돌리기", "", async () => {
+        await sb.from("orders").update({ status: "pending" }).eq("id", o.id);
+        refresh();
+      }),
+      btn("✓ 완료", "good", async () => {
+        await sb.from("orders").update({ status: "done" }).eq("id", o.id);
+        refresh();
+      }),
+    ]));
+  }
+  els.inProcessSec.hidden = inProcess.length === 0;
+  els.inProcessCount.textContent = inProcess.length ? `(${inProcess.length})` : "";
+
+  // ---- cancelled ----
   els.cancelledList.innerHTML = "";
   for (const o of cancelled) {
     els.cancelledList.appendChild(orderCard(o, [
@@ -139,6 +175,7 @@ async function refresh() {
   }
   els.cancelledSec.hidden = cancelled.length === 0;
 
+  // ---- done today ----
   els.doneList.innerHTML = "";
   for (const o of doneToday.reverse()) els.doneList.appendChild(orderCard(o, []));
   els.doneCount.textContent = `(${doneToday.length})`;
@@ -151,20 +188,44 @@ function subscribeRealtime() {
     .subscribe();
 }
 
-// ---- product stockout toggles ----
-function renderProducts() {
-  els.productList.innerHTML = "";
-  for (const p of products) {
+// ---- pre-poured stock ----
+function setupStockListener() {
+  els.stockList.addEventListener("click", async (e) => {
+    const button = e.target.closest("[data-delta]");
+    if (!button) return;
+    const pid = parseInt(button.dataset.id, 10);
+    const delta = parseInt(button.dataset.delta, 10);
+    const countEl = els.stockList.querySelector(`.stock-count[data-id="${pid}"]`);
+    if (!countEl) return;
+    const next = Math.max(0, parseInt(countEl.textContent, 10) + delta);
+    countEl.textContent = next;
+    await sb.from("stock").update({ ready_count: next }).eq("product_id", pid);
+  });
+}
+
+async function renderStock() {
+  if (!els.stockList) return;
+  const { data, error } = await sb
+    .from("stock")
+    .select("product_id, ready_count, products(display_label)")
+    .order("product_id");
+  if (error || !data) {
+    // stock table not yet created — show placeholder until migration is run
+    els.stockList.innerHTML = "<p class='meta' style='color:var(--muted);padding:8px 0'>재고 정보를 불러올 수 없습니다.</p>";
+    return;
+  }
+  els.stockList.innerHTML = "";
+  for (const s of data) {
     const row = document.createElement("div");
-    row.className = "togglerow" + (p.active ? "" : " off");
-    const label = document.createElement("span");
-    label.textContent = p.display_label;
-    row.appendChild(label);
-    row.appendChild(btn(p.active ? "판매 중" : "품절", p.active ? "good" : "danger", async () => {
-      await sb.from("products").update({ active: !p.active }).eq("id", p.id);
-      await loadProducts();
-    }));
-    els.productList.appendChild(row);
+    row.className = "stockrow";
+    row.innerHTML =
+      `<span>${s.products.display_label}</span>` +
+      `<div style="display:flex;align-items:center;gap:8px">` +
+        `<button class="qtybtn" type="button" data-id="${s.product_id}" data-delta="-1">−</button>` +
+        `<span class="stock-count" data-id="${s.product_id}">${s.ready_count}</span>` +
+        `<button class="qtybtn" type="button" data-id="${s.product_id}" data-delta="1">＋</button>` +
+      `</div>`;
+    els.stockList.appendChild(row);
   }
 }
 

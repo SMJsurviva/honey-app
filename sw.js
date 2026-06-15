@@ -1,14 +1,16 @@
 /* Service worker: network-first (never serve a stale app when online),
    cache fallback only when offline. Also handles Web Push for the operator. */
 
-const CACHE = "honey-v2";
+const CACHE = "honey-v3";
 const SHELL = [
   "./",
   "./index.html",
   "./operator.html",
+  "./analytics.html",
   "./css/style.css",
   "./js/app.js",
   "./js/operator.js",
+  "./js/analytics.js",
   "./js/config.js",
   "./js/vendor/supabase.js",
   "./manifest.webmanifest",

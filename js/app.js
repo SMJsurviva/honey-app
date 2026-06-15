@@ -7,6 +7,7 @@ const els = {
   view: document.getElementById("orderView"),
   typeGrid: document.getElementById("typeGrid"),
   sizeGrid: document.getElementById("sizeGrid"),
+  sizeLarge: document.getElementById("sizeLarge"),
   urgent: document.getElementById("urgentChk"),
   qtyInput: document.getElementById("qtyInput"),
   qtyMinus: document.getElementById("qtyMinus"),
@@ -26,6 +27,7 @@ const els = {
 const DEFAULT_TYPE = "벌꿀";
 const DEFAULT_SIZE = 470;
 const UNDO_SECONDS = 8;
+const ORDER_TIMEOUT_MS = 15000;
 
 let products = [];
 let selType = null;
@@ -63,6 +65,10 @@ els.nameSave.addEventListener("click", () => { setName(els.nameInput.value.trim(
 els.nameSkip.addEventListener("click", closeNameModal);
 
 // ---- product grids ----
+function fmtSize(g) {
+  return g >= 1000 ? (g / 1000) + "kg" : g + "g";
+}
+
 function typeActive(t) { return products.some((p) => p.honey_type === t && p.active); }
 function findProduct(t, s) { return products.find((p) => p.honey_type === t && p.size_g === s); }
 
@@ -90,17 +96,25 @@ function renderTypes() {
 
 function renderSizes() {
   const sizes = [...new Set(products.map((p) => p.size_g))].sort((a, b) => a - b);
-  els.sizeGrid.innerHTML = "";
-  for (const s of sizes) {
+  const normal = sizes.filter((s) => s < 1000);
+  const large = sizes.filter((s) => s >= 1000);
+
+  function makeBtn(s) {
     const p = selType ? findProduct(selType, s) : null;
     const b = document.createElement("button");
     b.type = "button";
     b.className = "gridbtn" + (s === selSize ? " sel" : "");
-    b.textContent = s + "g";
+    b.textContent = fmtSize(s);
     b.disabled = !p || !p.active;
     b.addEventListener("click", () => { selSize = s; renderSizes(); updateOrderBtn(); });
-    els.sizeGrid.appendChild(b);
+    return b;
   }
+
+  els.sizeGrid.innerHTML = "";
+  for (const s of normal) els.sizeGrid.appendChild(makeBtn(s));
+
+  els.sizeLarge.innerHTML = "";
+  for (const s of large) els.sizeLarge.appendChild(makeBtn(s));
 }
 
 function updateOrderBtn() {
@@ -134,17 +148,27 @@ async function placeOrder() {
   els.orderBtn.textContent = "전송 중…";
   els.orderMsg.hidden = true;
 
-  const { data, error } = await sb
-    .from("orders")
-    .insert({
-      device_id: deviceId(),
-      requester_name: getName() || null,
-      product_id: p.id,
-      quantity: qty(),
-      urgent: els.urgent.checked,
-    })
-    .select()
-    .single();
+  let data, error;
+  try {
+    const result = await Promise.race([
+      sb.from("orders").insert({
+        device_id: deviceId(),
+        requester_name: getName() || null,
+        product_id: p.id,
+        quantity: qty(),
+        urgent: els.urgent.checked,
+      }).select().single(),
+      new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), ORDER_TIMEOUT_MS)),
+    ]);
+    data = result.data;
+    error = result.error;
+  } catch (_) {
+    els.orderBtn.classList.remove("busy");
+    els.orderBtn.textContent = "주문하기";
+    updateOrderBtn();
+    showMsg("⚠️ 연결 시간이 초과되었습니다. 직접 말씀해 주세요.", "err");
+    return;
+  }
 
   els.orderBtn.classList.remove("busy");
 
@@ -192,7 +216,7 @@ function endUndoWindow() {
 els.orderBtn.onclick = placeOrder;
 
 // ---- my orders today ----
-const STATUS_KO = { pending: "대기", done: "완료", cancelled: "취소됨" };
+const STATUS_KO = { pending: "대기", in_process: "준비 중", done: "완료", cancelled: "취소됨" };
 
 async function loadMyOrders() {
   const today = new Date();
@@ -231,7 +255,7 @@ async function loadMyOrders() {
       li.appendChild(btn);
     } else {
       const s = document.createElement("span");
-      s.className = "status " + o.status;
+      s.className = "status " + o.status.replace("_", "-");
       s.textContent = STATUS_KO[o.status] || o.status;
       li.appendChild(s);
     }

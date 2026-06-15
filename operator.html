@@ -7,7 +7,7 @@
 <title>꿀 주문 관리</title>
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="css/style.css?v=2">
+<link rel="stylesheet" href="css/style.css?v=3">
 </head>
 <body>
 <header class="topbar">
@@ -27,12 +27,18 @@
   <div class="toolrow">
     <button id="verbalBtn" class="smallbtn" type="button">＋ 구두 주문 입력</button>
     <button id="notifBtn" class="smallbtn" type="button" hidden>🔔 알림 켜기</button>
+    <a href="analytics.html" class="smallbtn">📊 분석</a>
   </div>
 
   <section class="opsec">
     <h2>대기 중 <span id="pendingCount" class="count"></span></h2>
     <div id="pendingList"></div>
     <p id="pendingEmpty" class="meta" style="color:var(--muted)">대기 중인 주문이 없습니다.</p>
+  </section>
+
+  <section class="opsec" id="inProcessSec" hidden>
+    <h2>진행 중 <span id="inProcessCount" class="count"></span></h2>
+    <div id="inProcessList"></div>
   </section>
 
   <section class="opsec" id="cancelledSec" hidden>
@@ -49,8 +55,8 @@
 
   <section class="opsec">
     <details>
-      <summary>품목 관리 (품절 설정)</summary>
-      <div id="productList"></div>
+      <summary>즉시 출고 재고</summary>
+      <div id="stockList"></div>
     </details>
   </section>
 </main>
@@ -75,8 +81,8 @@
 
 <div id="offlineBanner" class="banner" hidden>서버에 연결할 수 없습니다.</div>
 
-<script src="js/vendor/supabase.js?v=2"></script>
-<script src="js/config.js?v=2"></script>
-<script src="js/operator.js?v=2"></script>
+<script src="js/vendor/supabase.js?v=3"></script>
+<script src="js/config.js?v=3"></script>
+<script src="js/operator.js?v=3"></script>
 </body>
 </html>
