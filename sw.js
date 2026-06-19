@@ -1,7 +1,15 @@
 /* Service worker: network-first (never serve a stale app when online),
    cache fallback only when offline. Also handles Web Push for the operator. */
 
-const CACHE = "honey-v3";
+const CACHE = "honey-v4";
+// VAPID public key — duplicated from config.js (public key, safe to hardcode in SW)
+const VAPID_KEY = "BIOfZQfEOPoQ4_jVP8ks1x5DOWdWkF7LcNDqXpd9LG-86ev6i3mmwc5RJafVDDaIAjGx_4pqq-al1XG_03bqscw";
+
+function b64ToUint8(s) {
+  const pad = "=".repeat((4 - s.length % 4) % 4);
+  const raw = atob((s + pad).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
+}
 const SHELL = [
   "./",
   "./index.html",
@@ -68,5 +76,24 @@ self.addEventListener("notificationclick", (e) => {
       }
       return clients.openWindow("operator.html");
     })
+  );
+});
+
+// Chrome/FCM periodically rotates push endpoints. Without this handler the new
+// endpoint is never saved to Supabase, the old one gets pruned → silent death.
+self.addEventListener("pushsubscriptionchange", (e) => {
+  e.waitUntil(
+    self.registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: b64ToUint8(VAPID_KEY),
+    }).then((sub) =>
+      self.clients.matchAll({ includeUncontrolled: true, type: "window" }).then((cs) =>
+        cs.forEach((c) => c.postMessage({ type: "push-resubscribe", sub: sub.toJSON() }))
+      )
+    ).catch(() =>
+      self.clients.matchAll({ includeUncontrolled: true, type: "window" }).then((cs) =>
+        cs.forEach((c) => c.postMessage({ type: "push-failed" }))
+      )
+    )
   );
 });

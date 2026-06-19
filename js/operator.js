@@ -289,27 +289,77 @@ function urlB64ToUint8Array(s) {
   return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
 }
 
-async function setupPush() {
-  if (!CONFIG.VAPID_PUBLIC_KEY || !("serviceWorker" in navigator) || !("PushManager" in window)) return;
-  const reg = await navigator.serviceWorker.register("sw.js");
-  if (Notification.permission === "granted") return subscribePush(reg);
+function showPushError() {
+  els.notifBtn.textContent = "🔔 알림 오류 — 탭하여 재시도";
+  els.notifBtn.classList.add("danger");
   els.notifBtn.hidden = false;
-  els.notifBtn.addEventListener("click", async () => {
-    const perm = await Notification.requestPermission();
-    if (perm === "granted") { await subscribePush(reg); els.notifBtn.hidden = true; }
-  });
 }
 
 async function subscribePush(reg) {
-  await navigator.serviceWorker.ready;
-  const sub = await reg.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: urlB64ToUint8Array(CONFIG.VAPID_PUBLIC_KEY),
-  });
-  // keep a single row — replace any previous subscription
-  await sb.from("operator_subscriptions").delete().neq("id", 0);
-  await sb.from("operator_subscriptions").insert({ subscription: sub.toJSON() });
+  try {
+    await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlB64ToUint8Array(CONFIG.VAPID_PUBLIC_KEY),
+    });
+    await sb.from("operator_subscriptions").delete().neq("id", 0);
+    await sb.from("operator_subscriptions").insert({ subscription: sub.toJSON() });
+    els.notifBtn.hidden = true;
+    els.notifBtn.textContent = "🔔 알림 켜기";
+    els.notifBtn.classList.remove("danger");
+  } catch (err) {
+    console.error("Push subscription failed:", err);
+    showPushError();
+  }
 }
+
+async function setupPush() {
+  if (!CONFIG.VAPID_PUBLIC_KEY || !("serviceWorker" in navigator) || !("PushManager" in window)) return;
+  let reg;
+  try { reg = await navigator.serviceWorker.register("sw.js"); }
+  catch (err) { console.error("SW registration failed:", err); return; }
+
+  // Retry handler covers both first-time enable and error-state tap-to-retry
+  els.notifBtn.addEventListener("click", async () => {
+    if (Notification.permission !== "granted") {
+      const perm = await Notification.requestPermission();
+      if (perm !== "granted") return;
+    }
+    await subscribePush(reg);
+  });
+
+  if (Notification.permission === "denied") return;
+  if (Notification.permission === "granted") await subscribePush(reg);
+  else { els.notifBtn.textContent = "🔔 알림 켜기"; els.notifBtn.hidden = false; }
+}
+
+// Handle push subscription rotation from the service worker
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.addEventListener("message", async (e) => {
+    if (e.data?.type === "push-resubscribe") {
+      try {
+        await sb.from("operator_subscriptions").delete().neq("id", 0);
+        await sb.from("operator_subscriptions").insert({ subscription: e.data.sub });
+      } catch (_) {}
+    } else if (e.data?.type === "push-failed") {
+      showPushError();
+    }
+  });
+}
+
+// One-time Samsung battery optimization reminder when running as installed PWA
+(function () {
+  if (window.matchMedia("(display-mode: standalone)").matches && !localStorage.getItem("honey_pwa_battery_ok")) {
+    const warn = document.getElementById("pwaBatteryWarning");
+    if (warn) warn.hidden = false;
+  }
+})();
+
+window.dismissPwaWarning = function () {
+  const warn = document.getElementById("pwaBatteryWarning");
+  if (warn) warn.hidden = true;
+  localStorage.setItem("honey_pwa_battery_ok", "1");
+};
 
 sb.auth.onAuthStateChange(() => {});
 checkAuth();

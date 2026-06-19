@@ -7,7 +7,7 @@
 <title>꿀 주문 관리</title>
 <link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="stylesheet" href="css/style.css?v=3">
+<link rel="stylesheet" href="css/style.css?v=4">
 </head>
 <body>
 <header class="topbar">
@@ -79,10 +79,14 @@
   </div>
 </div>
 
+<div id="pwaBatteryWarning" style="background:#b07d1f;color:#fff;padding:10px 14px;font-size:14px;line-height:1.4;display:flex;justify-content:space-between;align-items:center" hidden>
+  <span>⚡ <strong>알림 안정화:</strong> 설정 → 앱 → 꿀 주문 → 배터리 → <strong>제한 없음</strong></span>
+  <button onclick="dismissPwaWarning()" type="button" style="background:none;border:none;color:#fff;font-size:1.4em;line-height:1;cursor:pointer;padding:0 0 0 12px">×</button>
+</div>
 <div id="offlineBanner" class="banner" hidden>서버에 연결할 수 없습니다.</div>
 
-<script src="js/vendor/supabase.js?v=3"></script>
-<script src="js/config.js?v=3"></script>
-<script src="js/operator.js?v=3"></script>
+<script src="js/vendor/supabase.js?v=4"></script>
+<script src="js/config.js?v=4"></script>
+<script src="js/operator.js?v=4"></script>
 </body>
 </html>
