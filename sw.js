@@ -1,7 +1,7 @@
 /* Service worker: network-first (never serve a stale app when online),
    cache fallback only when offline. Also handles Web Push for the operator. */
 
-const CACHE = "honey-v4";
+const CACHE = "honey-v5";
 // VAPID public key — duplicated from config.js (public key, safe to hardcode in SW)
 const VAPID_KEY = "BIOfZQfEOPoQ4_jVP8ks1x5DOWdWkF7LcNDqXpd9LG-86ev6i3mmwc5RJafVDDaIAjGx_4pqq-al1XG_03bqscw";
 

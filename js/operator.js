@@ -63,6 +63,7 @@ async function enter() {
   setInterval(refresh, 30000); // polling fallback — Realtime can degrade independently
   requestWakeLock();
   setupPush();
+  catchUpNotify();
 }
 
 async function loadProducts() {
@@ -280,6 +281,23 @@ async function requestWakeLock() {
       });
     }
   } catch (_) { /* not critical */ }
+}
+
+// ---- catch-up: local notification for orders missed while subscription was down ----
+async function catchUpNotify() {
+  if (Notification.permission !== "granted") return;
+  const since = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(); // last 2h
+  const { data } = await sb.from("orders")
+    .select("id")
+    .eq("status", "pending")
+    .gt("created_at", since);
+  if (!data?.length) return;
+  const n = data.length;
+  new Notification(`🍯 미확인 주문 ${n}개`, {
+    body: "앱을 열고 확인하세요",
+    icon: "icons/icon-192.png",
+    tag: "honey-catchup",
+  });
 }
 
 // ---- web push (Phase 4 — active once VAPID_PUBLIC_KEY is set) ----
