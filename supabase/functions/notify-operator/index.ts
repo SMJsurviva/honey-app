@@ -55,16 +55,21 @@ Deno.serve(async (req) => {
     .eq("id", order.product_id)
     .single();
 
-  const title  = order.urgent ? "🔴 새 주문 (급함)" : "🍯 새 주문";
-  const qty    = (order.quantity ?? 1) > 1 ? ` × ${order.quantity}개` : "";
-  const name   = order.requester_name ?? "이름 없음";
-  const label  = product?.display_label ?? "?";
-  const body   = `${name} — ${label}${qty}`;
+  const qty   = (order.quantity ?? 1) > 1 ? ` × ${order.quantity}개` : "";
+  const name  = order.requester_name ?? "이름 없음";
+  const label = product?.display_label ?? "?";
+
+  // Web Push strings (compact — notification banner space is tight)
+  const title = order.urgent ? "🔴 꿀 주문 (급함!)" : "🍯 꿀 주문 도착";
+  const body  = `${name} — ${label}${qty}`;
 
   // ── Telegram (primary — no client state required) ─────────────────────────
-  const urgentTag = order.urgent ? "\n<b>⚠️ 급함</b>" : "";
+  // Heavy visual signature so it stands out from KLP noise at a glance.
+  const line   = "─────────────────";
+  const header = order.urgent ? "🔴🔴 <b>급한 꿀 주문!</b> 🔴🔴" : "🍯🍯 <b>꿀 주문 도착</b> 🍯🍯";
+  const qtyLine = (order.quantity ?? 1) > 1 ? `\n수량: <b>${order.quantity}개</b>` : "";
   await sendTelegram(
-    `${title}\n${body}${urgentTag}\n\n<a href="https://smjsurviva.github.io/honey-app/operator.html">주문 확인 →</a>`
+    `${header}\n${line}\n주문자: <b>${name}</b>\n상품: <b>${label}</b>${qtyLine}\n${line}\n<a href="https://smjsurviva.github.io/honey-app/operator.html">주문 확인 →</a>`
   );
 
   // ── Web Push (secondary — better UX when subscription is live) ────────────
